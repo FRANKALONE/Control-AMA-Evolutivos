@@ -1,0 +1,43 @@
+@import "tailwindcss";
+
+:root {
+  /* Altim Corporate Palette */
+  --malaquita: #18D450;
+  --antiflash: #F0F0F0;
+  --dark-green: #003B28;
+  --luminous-green: #6CF4A5;
+  --jade: #00B874;
+  --teal: #008580;
+  --prussian-blue: #003952;
+  --blue-grey: #000B1F;
+  --sea-salt: #FAFAFA;
+  --mint: #D8FDEC;
+  
+  --background: var(--sea-salt);
+  --foreground: var(--prussian-blue);
+}
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  
+  --color-malaquita: var(--malaquita);
+  --color-antiflash: var(--antiflash);
+  --color-dark-green: var(--dark-green);
+  --color-luminous-green: var(--luminous-green);
+  --color-jade: var(--jade);
+  --color-teal: var(--teal);
+  --color-prussian-blue: var(--prussian-blue);
+  --color-blue-grey: var(--blue-grey);
+  --color-sea-salt: var(--sea-salt);
+  --color-mint: var(--mint);
+
+  --font-sans: var(--font-anek-latin), Arial, sans-serif;
+  --font-secondary: var(--font-dm-sans), sans-serif;
+}
+
+body {
+  background: var(--background);
+  color: var(--foreground);
+  font-family: var(--font-sans);
+}
