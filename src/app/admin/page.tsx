@@ -1,7 +1,7 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { Trash2, ArrowLeft, Database, AlertCircle } from 'lucide-react';
+import { Trash2, ArrowLeft, Database, AlertCircle, User as UserIcon } from 'lucide-react';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
@@ -86,9 +86,15 @@ export default function AdminPage() {
 
                 {/* Content */}
                 <div className="bg-white rounded-2xl shadow-sm border border-antiflash overflow-hidden">
-                    <div className="p-6 border-b border-antiflash bg-white/50 backdrop-blur-sm">
-                        <h2 className="text-xl font-bold text-prussian-blue">Registro Diario</h2>
-                        <p className="text-sm text-teal/80">Monitorización de valores de "Evolutivos en Curso"</p>
+                    <div className="p-6 border-b border-antiflash bg-white/50 backdrop-blur-sm flex items-center justify-between">
+                        <div>
+                            <h2 className="text-xl font-bold text-prussian-blue">Registro Diario</h2>
+                            <p className="text-sm text-teal/80">Monitorización de valores de "Evolutivos en Curso"</p>
+                        </div>
+                        <Link href="/admin/users" className="bg-white border border-antiflash hover:border-jade text-blue-grey hover:text-jade px-4 py-2 rounded-lg font-bold transition-all flex items-center gap-2 shadow-sm hover:shadow-md">
+                            <UserIcon className="w-4 h-4" />
+                            Gestionar Usuarios
+                        </Link>
                     </div>
 
                     {loading ? (

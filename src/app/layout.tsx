@@ -1,6 +1,7 @@
 import type { Metadata } from 'next';
 import { Anek_Latin, DM_Sans } from 'next/font/google';
 import './globals.css';
+import { Providers } from '@/components/Providers';
 
 const anekLatin = Anek_Latin({
   subsets: ['latin'],
@@ -17,6 +18,11 @@ const dmSans = DM_Sans({
 export const metadata: Metadata = {
   title: 'Control AMA Evolutivos - Altim',
   description: 'Dashboard operativo para la gestión de evolutivos en Altim.',
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: 'default',
+    title: 'Control AMA',
+  },
 };
 
 export default function RootLayout({
@@ -27,7 +33,9 @@ export default function RootLayout({
   return (
     <html lang="es">
       <body className={`${anekLatin.variable} ${dmSans.variable} antialiased bg-[#F0F0F0]`}>
-        {children}
+        <Providers>
+          {children}
+        </Providers>
       </body>
     </html>
   );

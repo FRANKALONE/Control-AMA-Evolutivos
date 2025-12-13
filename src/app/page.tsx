@@ -1,19 +1,34 @@
 'use client';
 
 import { useEffect, useState } from 'react';
-import { LayoutDashboard, AlertCircle, Calendar, Clock, CheckCircle2, User, ArrowUpRight, MoreHorizontal, FileText, CheckCircle, ListTodo } from 'lucide-react';
+import { Layers, AlertTriangle, Calendar, Clock, ArrowRight, TrendingUp, Zap, User, AlertCircle, ArrowUpRight, ListTodo } from 'lucide-react';
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Link from 'next/link';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
+import { StatCard } from '@/components/ui/StatCard';
+import { CategoryCard } from '@/components/ui/CategoryCard';
+import { JiraIssue, DashboardStats, JiraUser } from '@/types/jira';
+import UserMenu from '@/components/UserMenu';
+
+interface DashboardData {
+  summary: DashboardStats;
+  issues: {
+    expired: JiraIssue[];
+    today: JiraIssue[];
+    upcoming: JiraIssue[];
+    others: JiraIssue[];
+  };
+  managers: JiraUser[];
+}
 
 function cn(...inputs: ClassValue[]) {
   return twMerge(clsx(inputs));
 }
 
 export default function Home() {
-  const [data, setData] = useState<any>(null);
+  const [data, setData] = useState<DashboardData | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState('');
 
@@ -32,7 +47,8 @@ export default function Home() {
         console.warn("Using mock data due to error");
         setData({
           summary: { expired: 0, today: 0, upcoming: 0, others: 0 },
-          issues: { expired: [], today: [], upcoming: [], others: [] }
+          issues: { expired: [], today: [], upcoming: [], others: [] },
+          managers: []
         });
       } finally {
         setLoading(false);
@@ -41,19 +57,63 @@ export default function Home() {
     fetchData();
   }, []);
 
+  // Fetch Evolutivos List
+  const [evolutivosList, setEvolutivosList] = useState<JiraIssue[]>([]);
+
+  useEffect(() => {
+    async function fetchEvolutivos() {
+      try {
+        const res = await fetch('/api/jira/evolutivos');
+        if (res.ok) {
+          const data = await res.json();
+          setEvolutivosList(data);
+        }
+      } catch (e) {
+        console.error(e);
+      }
+    }
+    fetchEvolutivos();
+  }, []);
+
   const [selectedManager, setSelectedManager] = useState<string>('');
+
+  // Compute filtered Evolutivos stats
+  const getFilteredEvolutivosStats = () => {
+    let list = evolutivosList;
+
+    // Filter by Manager if selected
+    if (selectedManager) {
+      if (selectedManager === 'unassigned') {
+        list = list.filter((i) => !i.gestor || !i.gestor.id);
+      } else {
+        list = list.filter((i) => i.gestor?.id === selectedManager);
+      }
+    }
+
+    const planned = list.filter((i) => i.pendingHitos > 0).length;
+    const unplanned = list.filter((i) => i.pendingHitos === 0).length;
+
+    return { planned, unplanned };
+  };
+
+  const evolutivoStats = getFilteredEvolutivosStats();
 
   // Compute filtered data
   const getFilteredSummary = () => {
     if (!data) return { expired: 0, today: 0, upcoming: 0, others: 0 };
     if (!selectedManager) return data.summary;
 
-    const filterFn = (i: any) => i.manager?.id === selectedManager;
+    const filterFn = (i: JiraIssue) => {
+      if (selectedManager === 'unassigned') return !i.gestor || !i.gestor.id;
+      return i.gestor?.id === selectedManager;
+    };
+
     return {
       expired: data.issues.expired.filter(filterFn).length,
       today: data.issues.today.filter(filterFn).length,
       upcoming: data.issues.upcoming.filter(filterFn).length,
       others: data.issues.others.filter(filterFn).length,
+      activeEvolutivos: data.summary.activeEvolutivos
     };
   };
 
@@ -85,10 +145,7 @@ export default function Home() {
               Gestión operativa de evolutivos y hitos.
             </p>
             <div className="flex items-center gap-2 mt-4">
-              <span className="flex items-center gap-1.5 px-3 py-1 bg-malaquita/10 text-dark-green rounded-full text-sm font-bold border border-malaquita/20">
-                <div className="w-2 h-2 rounded-full bg-malaquita animate-pulse" />
-                {data?.summary?.activeEvolutivos || 0} Evolutivos en curso
-              </span>
+              {/* Removed Link */}
             </div>
           </div>
 
@@ -103,6 +160,7 @@ export default function Home() {
                   onChange={(e) => setSelectedManager(e.target.value)}
                 >
                   <option value="">Todos los Gestores</option>
+                  <option value="unassigned" className="text-teal font-bold bg-antiflash">⚠️ Sin asignar</option>
                   {managers.map((m: any) => (
                     <option key={m.id} value={m.id}>{m.name}</option>
                   ))}
@@ -117,6 +175,9 @@ export default function Home() {
                 {format(new Date(), "d 'de' MMMM, yyyy", { locale: es })}
               </span>
             </div>
+
+            {/* User Menu */}
+            <UserMenu />
           </div>
         </div>
 
@@ -133,126 +194,82 @@ export default function Home() {
           <StatCard
             title="Vencidas"
             count={stats.expired}
-            icon={<ListTodo className="w-6 h-6" />}
-            color="text-red-600"
-            bgColor="bg-red-50"
-            borderColor="border-red-100"
-            href={`/list/expired${selectedManager ? '?manager=' + selectedManager : ''}`}
+            icon={<AlertTriangle className="w-8 h-8" />}
+            color="red"
+            href={`/list/expired?manager=${selectedManager}`}
           />
-
-          {/* Card: Vencen Hoy (Warning = Orange) */}
           <StatCard
-            title="Vencen Hoy"
+            title="Para Hoy"
             count={stats.today}
-            icon={<Clock className="w-6 h-6" />}
-            color="text-orange-600"
-            bgColor="bg-orange-50"
-            borderColor="border-orange-100"
-            href={`/list/today${selectedManager ? '?manager=' + selectedManager : ''}`}
+            icon={<Calendar className="w-8 h-8" />}
+            color="amber"
+            href={`/list/today?manager=${selectedManager}`}
           />
-
-          {/* Card: Próximos 7 días (Caution = Yellow) */}
           <StatCard
-            title="Próximos 7 días"
+            title="Próximos 7 Días"
             count={stats.upcoming}
-            icon={<ArrowUpRight className="w-6 h-6" />}
-            color="text-yellow-700"
-            bgColor="bg-yellow-50"
-            borderColor="border-yellow-100"
-            href={`/list/upcoming${selectedManager ? '?manager=' + selectedManager : ''}`}
+            icon={<Clock className="w-8 h-8" />}
+            color="blue"
+            href={`/list/upcoming?manager=${selectedManager}`}
           />
         </div>
 
+
         {/* Main Content Area */}
-        <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-          {/* Simplified Task List / Placeholder */}
-          <div className="lg:col-span-2 bg-white rounded-[2rem] p-8 border border-antiflash shadow-sm hover:shadow-md transition-all duration-300">
+        <div className="w-full">
+          {/* Evolutivos Section */}
+          <div className="bg-white rounded-[2rem] p-8 border border-antiflash shadow-sm hover:shadow-md transition-all duration-300 mb-8">
             <div className="flex items-center justify-between mb-8">
               <div>
-                <h2 className="text-2xl font-bold text-blue-grey">Listado de Evolutivos</h2>
-                <p className="text-teal mt-1 font-secondary">Vista general de tareas activas</p>
+                <h2 className="text-2xl font-bold text-blue-grey">Evolutivos en Curso</h2>
+                <p className="text-teal mt-1 font-secondary">Gestión de desarrollos planificados y alertas.</p>
               </div>
-              <button className="p-2 hover:bg-antiflash rounded-full transition-colors text-jade">
-                <MoreHorizontal className="w-5 h-5" />
-              </button>
             </div>
 
-            {/* Empty State / Loading */}
-            <div className="flex flex-col items-center justify-center py-16 text-center space-y-4 border-2 border-dashed border-antiflash rounded-3xl bg-sea-salt/30">
-              <div className="w-16 h-16 bg-white rounded-full flex items-center justify-center shadow-sm">
-                <FileText className="w-8 h-8 text-jade" />
-              </div>
-              <div>
-                <p className="text-lg font-medium text-prussian-blue">Selecciona una categoría arriba</p>
-                <p className="text-sm text-teal/80">
-                  Pulsa en las tarjetas para ver el detalle de los tickets.
-                </p>
-              </div>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+              {/* Card: Planificados */}
+              <CategoryCard
+                title="Planificados"
+                subtitle="Con hitos definidos"
+                count={evolutivoStats.planned}
+                icon={<Layers className="w-8 h-8" />}
+                href="/evolutivos/planificados"
+                theme="green"
+              />
+
+              {/* Card: No Planificados */}
+              <CategoryCard
+                title="No Planificados"
+                subtitle="Sin hitos / Alertas"
+                count={evolutivoStats.unplanned}
+                icon={<AlertTriangle className="w-8 h-8" />}
+                href="/evolutivos/sin-planificar"
+                theme="orange"
+              />
             </div>
           </div>
 
-          {/* Quick Stats / Info */}
-          <div className="bg-prussian-blue rounded-[2rem] p-8 text-white shadow-xl overflow-hidden relative group">
-            <div className="relative z-10">
-              <h3 className="text-xl font-bold mb-8 flex items-center gap-3">
-                <CheckCircle className="w-6 h-6 text-malaquita" />
-                Estado del Servicio
-              </h3>
-              <div className="space-y-8 font-secondary">
-                <div>
-                  <p className="text-white/60 text-sm mb-1 uppercase tracking-widest">Total Tareas Activas</p>
-                  <p className="text-5xl font-bold text-white tracking-tight">{
-                    (data?.summary?.expired || 0) +
-                    (data?.summary?.today || 0) +
-                    (data?.summary?.upcoming || 0) +
-                    (data?.summary?.others || 0)
-                  }</p>
+          {/* Timeline Entry Point */}
+          <Link href="/timeline" className="block group relative bg-gradient-to-r from-slate-800 to-blue-grey rounded-[2rem] p-8 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/3 group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 transition-colors">
+                  <Calendar className="w-8 h-8 text-white" />
                 </div>
-                <div className="h-px bg-white/10" />
                 <div>
-                  <p className="text-white/60 text-sm mb-1 uppercase tracking-widest">SLA Global</p>
-                  <div className="flex items-end gap-2">
-                    <p className="text-3xl font-medium text-malaquita">98.5%</p>
-                    <span className="text-sm text-jade mb-1.5">▲ 2.1%</span>
-                  </div>
+                  <h2 className="text-2xl font-bold text-white mb-1">Explorar Líneas Temporales</h2>
+                  <p className="text-white/70 font-secondary">Visualiza la planificación de hitos en un cronograma interactivo.</p>
                 </div>
               </div>
+              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm group-hover:translate-x-2 transition-transform">
+                <ArrowRight className="w-6 h-6 text-white" />
+              </div>
             </div>
-            {/* Decorative circle */}
-            <div className="absolute -bottom-20 -right-20 w-64 h-64 bg-jade/20 rounded-full blur-3xl group-hover:bg-malaquita/20 transition-colors duration-700" />
-            <div className="absolute top-10 right-10 w-20 h-20 bg-teal/20 rounded-full blur-xl animate-pulse" />
-          </div>
+          </Link>
         </div>
       </div>
     </div>
   );
 }
 
-// Updated component to support new colors
-function StatCard({ title, count, icon, color, bgColor, borderColor, href }: any) {
-  const Component = href ? Link : 'div';
-  return (
-    <Component
-      href={href || '#'}
-      className={cn(
-        "group bg-white p-6 rounded-[2rem] border shadow-sm hover:shadow-xl transition-all duration-300 relative overflow-hidden",
-        borderColor || "border-antiflash"
-      )}
-    >
-      <div className={`absolute top-0 right-0 p-16 rounded-bl-full opacity-10 ${bgColor} group-hover:scale-150 transition-transform duration-700 ease-out`} />
-
-      <div className="relative z-10">
-        <div className="flex items-center justify-between mb-6">
-          <div className={`p-3.5 rounded-2xl ${bgColor} ${color} group-hover:scale-110 transition-transform duration-300 shadow-sm`}>
-            {icon}
-          </div>
-          {href && <ArrowUpRight className="w-5 h-5 text-neutral-300 group-hover:text-jade transition-colors" />}
-        </div>
-        <div>
-          <p className="text-sm font-bold opacity-80 font-secondary uppercase tracking-wider mb-1 text-current">{title}</p>
-          <h3 className="text-5xl font-bold text-blue-grey tracking-tighter group-hover:translate-x-1 transition-transform">{count}</h3>
-        </div>
-      </div>
-    </Component>
-  );
-}

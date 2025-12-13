@@ -47,19 +47,26 @@ export async function GET(request: Request) {
             try {
                 // Fetch parents in batch (Limit handled by maxResults=100 in lib, might need pagination if >100 parents, but unlikely for now)
                 const parentsJql = `key in (${parentKeys.join(',')})`;
-                const parentsData = await getJiraIssues(parentsJql, ['customfield_10254']); // Request Gestor field
+                // Request Gestor (10254) AND Organization (10002)
+                const parentsData = await getJiraIssues(parentsJql, ['customfield_10254', 'customfield_10002']);
 
                 if (parentsData.issues) {
                     parentsData.issues.forEach((p: any) => {
                         // customfield_10254 is the User Object
                         const gestor = p.fields.customfield_10254;
-                        if (gestor && gestor.displayName) {
-                            managerMap.set(p.key, {
+
+                        // customfield_10002 is Organization Array
+                        const orgs = p.fields.customfield_10002 || [];
+                        const organization = orgs.length > 0 ? orgs[0].name : null;
+
+                        managerMap.set(p.key, {
+                            gestor: gestor ? {
                                 name: gestor.displayName,
                                 avatar: gestor.avatarUrls?.['48x48'] || null,
                                 id: gestor.accountId
-                            });
-                        }
+                            } : null,
+                            organization: organization
+                        });
                     });
                 }
             } catch (err) {
@@ -79,8 +86,12 @@ export async function GET(request: Request) {
         // We map to a new array to avoid mutating read-only refs if any, and inject manager
         const enrichedIssues = issues.map((issue: any) => {
             const pKey = issue.fields.parent?.key;
-            const manager = pKey ? managerMap.get(pKey) : null;
-            return { ...issue, manager };
+            const parentDetails = pKey ? managerMap.get(pKey) : null;
+            return {
+                ...issue,
+                gestor: parentDetails?.gestor || null,
+                organization: parentDetails?.organization || null
+            };
         });
 
         enrichedIssues.forEach((issue: any) => {
@@ -116,7 +127,7 @@ export async function GET(request: Request) {
             },
             // Return all managers found for the frontend filter
             managers: Array.from(managerMap.values()).reduce((acc: any[], curr) => {
-                if (!acc.find(m => m.id === curr.id)) acc.push(curr);
+                if (curr.gestor && !acc.find(m => m.id === curr.gestor.id)) acc.push(curr.gestor);
                 return acc;
             }, [])
         });
