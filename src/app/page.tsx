@@ -117,6 +117,34 @@ export default function Home() {
     };
   };
 
+  // Calculate Health Stats
+  const getHealthStats = () => {
+    let list = evolutivosList;
+    // Filter by Manager if selected
+    if (selectedManager) {
+      if (selectedManager === 'unassigned') {
+        list = list.filter((i) => !i.gestor || !i.gestor.id);
+      } else {
+        list = list.filter((i) => i.gestor?.id === selectedManager);
+      }
+    }
+
+    // Only consider projects with estimations > 0 to precise calculation
+    const measurableProjects = list.filter(i => (i.timeoriginalestimate || 0) > 0);
+    if (measurableProjects.length === 0) return { percent: 100, label: 'Sin Estimaciones' }; // Default to good if no data
+
+    const healthyProjects = measurableProjects.filter(i => {
+      const est = i.timeoriginalestimate || 0;
+      const spent = i.timespent || 0;
+      return spent <= est;
+    });
+
+    const percent = Math.round((healthyProjects.length / measurableProjects.length) * 100);
+    return { percent, label: `${healthyProjects.length} / ${measurableProjects.length} en tiempo` };
+  };
+
+  const healthStats = getHealthStats();
+
   const stats = getFilteredSummary();
   const managers = data?.managers || [];
 
@@ -188,7 +216,7 @@ export default function Home() {
           </div>
         )}
 
-        {/* Stats Grid */}
+        {/* 1. Stats Grid (Fichas de Hitos) */}
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card: Vencidas (Critical = Red) */}
           <StatCard
@@ -214,11 +242,31 @@ export default function Home() {
           />
         </div>
 
-
-        {/* Main Content Area */}
+        {/* 2. Timeline Entry Point (Línea Temporal) */}
         <div className="w-full">
-          {/* Evolutivos Section */}
-          <div className="bg-white rounded-[2rem] p-8 border border-antiflash shadow-sm hover:shadow-md transition-all duration-300 mb-8">
+          <Link href="/timeline" className="block group relative bg-gradient-to-r from-slate-800 to-blue-grey rounded-[2rem] p-8 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/3 group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
+            <div className="relative z-10 flex items-center justify-between">
+              <div className="flex items-center gap-6">
+                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 transition-colors">
+                  <Calendar className="w-8 h-8 text-white" />
+                </div>
+                <div>
+                  <h2 className="text-2xl font-bold text-white mb-1">Explorar Líneas Temporales</h2>
+                  <p className="text-white/70 font-secondary">Visualiza la planificación de hitos en un cronograma interactivo.</p>
+                </div>
+              </div>
+              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm group-hover:translate-x-2 transition-transform">
+                <ArrowRight className="w-6 h-6 text-white" />
+              </div>
+            </div>
+          </Link>
+        </div>
+
+
+        {/* 3. Evolutivos Section (Evolutivos en Curso) */}
+        <div className="w-full">
+          <div className="bg-white rounded-[2rem] p-8 border border-antiflash shadow-sm hover:shadow-md transition-all duration-300">
             <div className="flex items-center justify-between mb-8">
               <div>
                 <h2 className="text-2xl font-bold text-blue-grey">Evolutivos en Curso</h2>
@@ -248,22 +296,48 @@ export default function Home() {
               />
             </div>
           </div>
+        </div>
 
-          {/* Timeline Entry Point */}
-          <Link href="/timeline" className="block group relative bg-gradient-to-r from-slate-800 to-blue-grey rounded-[2rem] p-8 overflow-hidden shadow-lg hover:shadow-xl transition-all duration-300">
-            <div className="absolute top-0 right-0 w-64 h-64 bg-white opacity-5 rounded-full -translate-y-1/2 translate-x-1/3 group-hover:scale-110 transition-transform duration-700 pointer-events-none" />
-            <div className="relative z-10 flex items-center justify-between">
-              <div className="flex items-center gap-6">
-                <div className="w-16 h-16 rounded-2xl bg-white/10 flex items-center justify-center backdrop-blur-sm group-hover:bg-white/20 transition-colors">
-                  <Calendar className="w-8 h-8 text-white" />
+        {/* 4. KPI: Project Health (Presupuesto) (Salud Presupuestaria) */}
+        <div className="w-full">
+          <Link href="/avances" className="block group">
+            <div className={`rounded-2xl p-6 border transition-all duration-300 shadow-sm hover:shadow-md flex items-center justify-between
+                    ${healthStats.percent >= 80 ? 'bg-green-50 border-green-100' :
+                healthStats.percent >= 60 ? 'bg-orange-50 border-orange-100' :
+                  'bg-red-50 border-red-100'
+              }
+                 `}>
+              <div className="flex items-center gap-4">
+                <div className={`w-16 h-16 rounded-2xl flex items-center justify-center backdrop-blur-sm transition-colors
+                           ${healthStats.percent >= 80 ? 'bg-green-100 text-green-600' :
+                    healthStats.percent >= 60 ? 'bg-orange-100 text-orange-600' :
+                      'bg-red-100 text-red-600'}
+                        `}>
+                  <ListTodo className="w-8 h-8" />
                 </div>
                 <div>
-                  <h2 className="text-2xl font-bold text-white mb-1">Explorar Líneas Temporales</h2>
-                  <p className="text-white/70 font-secondary">Visualiza la planificación de hitos en un cronograma interactivo.</p>
+                  <h2 className={`text-2xl font-bold mb-1 ${healthStats.percent >= 80 ? 'text-green-800' :
+                    healthStats.percent >= 60 ? 'text-orange-800' :
+                      'text-red-800'
+                    }`}>
+                    {healthStats.percent}% Salud Presupuestaria
+                  </h2>
+                  <p className={`font-secondary ${healthStats.percent >= 80 ? 'text-green-600' :
+                    healthStats.percent >= 60 ? 'text-orange-600' :
+                      'text-red-600'
+                    }`}>
+                    Proyectos en tiempo ({healthStats.label}). Click para detalle.
+                  </p>
                 </div>
               </div>
-              <div className="w-12 h-12 rounded-full bg-white/10 flex items-center justify-center backdrop-blur-sm group-hover:translate-x-2 transition-transform">
-                <ArrowRight className="w-6 h-6 text-white" />
+
+              <div className={`px-4 py-2 rounded-lg font-bold text-sm tracking-wide bg-white/50 border border-white/20
+                         ${healthStats.percent >= 80 ? 'text-green-700' :
+                  healthStats.percent >= 60 ? 'text-orange-700' :
+                    'text-red-700'
+                }
+                    `}>
+                VER DETALLE
               </div>
             </div>
           </Link>

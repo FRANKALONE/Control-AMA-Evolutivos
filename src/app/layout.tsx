@@ -2,6 +2,7 @@ import type { Metadata } from 'next';
 import { Anek_Latin, DM_Sans } from 'next/font/google';
 import './globals.css';
 import { Providers } from '@/components/Providers';
+import { ChatWidget } from "@/components/ai/ChatWidget";
 
 const anekLatin = Anek_Latin({
   subsets: ['latin'],
@@ -35,6 +36,7 @@ export default function RootLayout({
       <body className={`${anekLatin.variable} ${dmSans.variable} antialiased bg-[#F0F0F0]`}>
         <Providers>
           {children}
+          {/* <ChatWidget /> */}
         </Providers>
       </body>
     </html>

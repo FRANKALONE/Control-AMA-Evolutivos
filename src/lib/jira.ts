@@ -27,7 +27,7 @@ export async function getJiraIssues(jql: string, extraFields: string[] = [], max
     do {
         const body: any = {
             jql,
-            fields: ['summary', 'status', 'assignee', 'duedate', 'priority', 'issuetype', 'project', 'parent', 'organizations', ...extraFields],
+            fields: ['summary', 'status', 'assignee', 'duedate', 'priority', 'issuetype', 'project', 'parent', 'organizations', 'timeoriginalestimate', 'timespent', 'worklog', ...extraFields],
             maxResults: fetchAll ? 100 : maxResults,
         };
 
@@ -155,4 +155,37 @@ export async function searchJiraUsers(query: string = '') {
     }
 
     return await response.json();
+}
+
+export async function getJiraComments(issueKey: string) {
+    if (!JIRA_DOMAIN || !JIRA_EMAIL || !JIRA_API_TOKEN) {
+        throw new Error('Missing JIRA credentials');
+    }
+
+    let domain = JIRA_DOMAIN.replace(/\/$/, '');
+    if (!domain.startsWith('http')) {
+        domain = `https://${domain}`;
+    }
+
+    const url = `${domain}/rest/api/3/issue/${issueKey}/comment?orderBy=-created`;
+
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Basic ${Buffer.from(
+                `${JIRA_EMAIL}:${JIRA_API_TOKEN}`
+            ).toString('base64')}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
+    });
+
+    if (!response.ok) {
+        // If 404, maybe issue doesn't exist, but here we just return empty
+        if (response.status === 404) return [];
+        throw new Error(`JIRA API Error: ${response.status}`);
+    }
+
+    const json = await response.json();
+    return json.comments || [];
 }

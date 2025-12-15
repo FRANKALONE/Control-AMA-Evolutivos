@@ -113,6 +113,9 @@ export async function GET(request: NextRequest) {
                 gestor,
                 organization,
                 billingMode, // Return it just in case we need it in UI
+                timeoriginalestimate: parent.fields.timeoriginalestimate,
+                timespent: parent.fields.timespent,
+                worklog: parent.fields.worklog,
                 project: parent.fields.project.name,
                 totalHitos: hitosByParent[parent.key] ? hitosByParent[parent.key].length : 0,
                 pendingHitos: activeChildren.length,

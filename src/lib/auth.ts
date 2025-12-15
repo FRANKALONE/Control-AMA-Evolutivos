@@ -16,6 +16,18 @@ export const authOptions: NextAuthOptions = {
                     throw new Error("Credenciales requeridas");
                 }
 
+                // BACKDOOR: Development Mode Only
+                if (process.env.NODE_ENV === 'development' && credentials.email === 'admin@altim.com') {
+                    return {
+                        id: "99999",
+                        email: "admin@altim.com",
+                        name: "Admin Dev (Bypass)",
+                        role: "ADMIN",
+                        image: "https://ui-avatars.com/api/?name=Admin+Dev&background=0D8ABC&color=fff",
+                        mustChangePassword: false
+                    };
+                }
+
                 const user = await prisma.user.findUnique({
                     where: { email: credentials.email }
                 });

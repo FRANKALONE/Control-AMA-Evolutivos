@@ -72,6 +72,9 @@ export default function UserMenu() {
                             Cerrar Sesión
                         </button>
                     </div>
+                    <div className="px-4 py-2 bg-gray-50 border-t border-gray-100 text-center">
+                        <span className="text-[10px] text-gray-400 font-mono">v2512.2</span>
+                    </div>
                 </div>
             )}
         </div>

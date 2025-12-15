@@ -2,10 +2,11 @@
 
 import { useEffect, useState, useMemo, useCallback } from 'react';
 import { useParams } from 'next/navigation';
-import { ArrowLeft, Layers, AlertTriangle, User, Calendar, Search, X, ArrowRight, Filter, ChevronDown, RefreshCw, Zap } from 'lucide-react';
+import { ArrowLeft, Layers, AlertTriangle, User, Calendar, Search, X, ArrowRight, Filter, ChevronDown, RefreshCw, Zap, Sparkles } from 'lucide-react';
 import Link from 'next/link';
 import { DropdownFilter } from '@/components/ui/DropdownFilter';
 import { JiraIssue } from '@/types/jira';
+import { AnalysisModal } from '@/components/ai/AnalysisModal';
 
 export default function EvolutivosListPage() {
     const params = useParams();
@@ -15,13 +16,16 @@ export default function EvolutivosListPage() {
     const [loading, setLoading] = useState(true);
     const [error, setError] = useState('');
 
+    // AI Modal State
+    const [analysisKey, setAnalysisKey] = useState<string | null>(null);
+
     // Focus State
     const [focusPerson, setFocusPerson] = useState<string>('');
 
     // Filter States
     const [selectedKeys, setSelectedKeys] = useState<string[]>([]);
     const [selectedStatuses, setSelectedStatuses] = useState<string[]>([]);
-    const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]); // NEW
+    const [selectedOrgs, setSelectedOrgs] = useState<string[]>([]);
     const [selectedGestors, setSelectedGestors] = useState<string[]>([]);
     const [selectedAssignees, setSelectedAssignees] = useState<string[]>([]);
     const [dateRange, setDateRange] = useState({ start: '', end: '' });
@@ -70,10 +74,10 @@ export default function EvolutivosListPage() {
     // Extract Unique Options & People for Focus
     const { options, allPeople } = useMemo(() => {
         const statuses = Array.from(new Set(issues.map(i => i.status))).sort();
-        const orgs = Array.from(new Set(issues.map(i => i.organization || 'Sin organización'))).sort(); // NEW
+        const orgs = Array.from(new Set(issues.map(i => i.organization || 'Sin organización'))).sort();
         const gestors = Array.from(new Set(issues.map(i => i.gestor?.name).filter(Boolean))).sort() as string[];
         const assignees = Array.from(new Set(issues.map(i => i.assignee?.displayName).filter(Boolean))).sort() as string[];
-        const keys = issues.map(i => ({ key: i.key, summary: i.summary })); // Keep key+summary pair
+        const keys = issues.map(i => ({ key: i.key, summary: i.summary }));
 
         // Combine unique people for Focus Selector
         const peopleSet = new Set([...gestors, ...assignees]);
@@ -133,10 +137,9 @@ export default function EvolutivosListPage() {
         if (!checkFilter(selectedAssignees, assigneeName, excludeMode.assignee)) return false;
 
         // 6. Date Range
-        // Date Logic (replicated from render to ensure consistency)
         let displayDate: string | null = null;
         if (issue.pendingHitos > 0) {
-            displayDate = issue.latestDeadline || null; // "Sin fijar" is technically null for range comparison usually, unless we want to filter FOR "Sin fijar"
+            displayDate = issue.latestDeadline || null;
         } else {
             displayDate = issue.parentDeadline || null;
         }
@@ -358,12 +361,13 @@ export default function EvolutivosListPage() {
                                     <th className="px-6 py-5">Responsable</th>
                                     <th className="px-6 py-5 text-center">Hitos</th>
                                     <th className="px-8 py-5 text-right">Vencimiento</th>
+                                    <th className="px-4 py-5 text-center w-16">IA</th>
                                 </tr>
                             </thead>
                             <tbody className="divide-y divide-antiflash">
                                 {filteredIssues.length === 0 ? (
                                     <tr>
-                                        <td colSpan={7} className="px-6 py-16 text-center text-teal/50 font-secondary">
+                                        <td colSpan={8} className="px-6 py-16 text-center text-teal/50 font-secondary">
                                             {issues.length === 0 ? "No hay evolutivos en esta categoría." : "No se encontraron resultados para tus filtros."}
                                         </td>
                                     </tr>
@@ -481,6 +485,17 @@ export default function EvolutivosListPage() {
                                                 )}
                                             </td>
 
+                                            {/* AI Button */}
+                                            <td className="px-4 py-5 text-center">
+                                                <button
+                                                    onClick={(e) => { e.stopPropagation(); setAnalysisKey(issue.key); }}
+                                                    className="p-2 text-indigo-400 hover:text-indigo-600 hover:bg-indigo-50 rounded-full transition-all"
+                                                    title="Analizar con IA"
+                                                >
+                                                    <Sparkles className="w-5 h-5" />
+                                                </button>
+                                            </td>
+
                                         </tr>
                                     )
                                 })}
@@ -489,6 +504,12 @@ export default function EvolutivosListPage() {
                     </div>
                 </div>
             </div>
+
+            <AnalysisModal
+                issueKey={analysisKey || ''}
+                isOpen={!!analysisKey}
+                onClose={() => setAnalysisKey(null)}
+            />
         </div>
     );
 }

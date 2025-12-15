@@ -36,6 +36,11 @@ export interface JiraIssue {
     // Hito Specifics
     totalHitos: number;
     pendingHitos: number;
+    // Time Tracking
+    timeoriginalestimate?: number;
+    timespent?: number;
+    worklog?: any; // Raw worklog object
+
     children?: JiraIssue[]; // For Evolutivos that have Hitos
 }
 
