@@ -5,6 +5,7 @@ import { Layers, AlertTriangle, Calendar, Clock, ArrowRight, TrendingUp, Zap, Us
 import { clsx, type ClassValue } from 'clsx';
 import { twMerge } from 'tailwind-merge';
 import Link from 'next/link';
+import Image from 'next/image';
 import { format } from 'date-fns';
 import { es } from 'date-fns/locale';
 import { StatCard } from '@/components/ui/StatCard';
@@ -166,6 +167,16 @@ export default function Home() {
         {/* Header & Filter */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
+            <div className="mb-4">
+              <Image
+                src="/logo-new.jpg"
+                alt="Logo App"
+                width={150}
+                height={50}
+                className="object-contain"
+                priority
+              />
+            </div>
             <h1 className="text-5xl font-bold tracking-tight text-blue-grey mb-2 font-sans">
               Hola, Equipo <span className="text-malaquita">Altim</span>
             </h1>
@@ -343,7 +354,7 @@ export default function Home() {
           </Link>
         </div>
       </div>
-    </div>
+    </div >
   );
 }
 
