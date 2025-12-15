@@ -8,18 +8,33 @@ import { JiraIssue } from '@/types/jira';
 
 // Simple Modal for Worklogs
 function WorklogModal({ issue, onClose }: { issue: any, onClose: () => void }) {
+    const [worklogs, setWorklogs] = useState<any[]>([]);
+    const [loading, setLoading] = useState(true);
+
+    useEffect(() => {
+        if (issue?.id) {
+            setLoading(true);
+            fetch(`/api/tempo/worklogs?issueId=${issue.id}`)
+                .then(res => res.json())
+                .then(data => {
+                    if (Array.isArray(data)) {
+                        setWorklogs(data);
+                    } else {
+                        console.error('Tempo data invalid', data);
+                        setWorklogs([]);
+                    }
+                })
+                .catch(err => console.error(err))
+                .finally(() => setLoading(false));
+        }
+    }, [issue]);
+
     if (!issue) return null;
 
-    const worklogs = issue.worklog?.worklogs || [];
     // Aggregate by author
     const byAuthor: Record<string, number> = {};
     worklogs.forEach((w: any) => {
-        // Robust Author Check
-        const authorObj = w.author || w.updateAuthor;
-        const authorName = authorObj?.displayName || authorObj?.name || authorObj?.emailAddress || 'Desconocido';
-
-        console.log('Worklog Entry Debug:', w); // For debugging
-
+        const authorName = w.author?.displayName || 'Desconocido';
         byAuthor[authorName] = (byAuthor[authorName] || 0) + w.timeSpentSeconds;
     });
 
@@ -31,7 +46,9 @@ function WorklogModal({ issue, onClose }: { issue: any, onClose: () => void }) {
                     <button onClick={onClose} className="p-1 hover:bg-gray-200 rounded-full"><X className="w-5 h-5 text-gray-500" /></button>
                 </div>
                 <div className="p-4 max-h-[60vh] overflow-y-auto">
-                    {Object.keys(byAuthor).length === 0 ? (
+                    {loading ? (
+                        <div className="flex justify-center p-8"><div className="animate-spin h-6 w-6 border-2 border-indigo-500 rounded-full border-t-transparent"></div></div>
+                    ) : Object.keys(byAuthor).length === 0 ? (
                         <p className="text-gray-500 text-center py-4">No hay imputaciones registradas.</p>
                     ) : (
                         <div className="space-y-3">
@@ -53,7 +70,7 @@ function WorklogModal({ issue, onClose }: { issue: any, onClose: () => void }) {
                     )}
                 </div>
                 <div className="p-4 bg-gray-50 border-t border-gray-100 text-right">
-                    <span className="text-xs text-gray-500 mr-2">Total Imputado:</span>
+                    <span className="text-xs text-gray-500 mr-2">Total Imputado (Jira):</span>
                     <span className="font-bold text-indigo-600 text-lg">
                         {((issue.timespent || 0) / 3600).toFixed(2)} h
                     </span>

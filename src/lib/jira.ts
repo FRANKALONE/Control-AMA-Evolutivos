@@ -189,3 +189,34 @@ export async function getJiraComments(issueKey: string) {
     const json = await response.json();
     return json.comments || [];
 }
+
+export async function getJiraUser(accountId: string) {
+    if (!JIRA_DOMAIN || !JIRA_EMAIL || !JIRA_API_TOKEN) {
+        throw new Error('Missing JIRA credentials');
+    }
+
+    let domain = JIRA_DOMAIN.replace(/\/$/, '');
+    if (!domain.startsWith('http')) {
+        domain = `https://${domain}`;
+    }
+
+    const url = `${domain}/rest/api/3/user?accountId=${accountId}`;
+
+    const response = await fetch(url, {
+        method: 'GET',
+        headers: {
+            'Authorization': `Basic ${Buffer.from(
+                `${JIRA_EMAIL}:${JIRA_API_TOKEN}`
+            ).toString('base64')}`,
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+        }
+    });
+
+    if (!response.ok) {
+        console.warn(`JIRA User Fetch Error for ${accountId}:`, response.status);
+        return null;
+    }
+
+    return await response.json();
+}

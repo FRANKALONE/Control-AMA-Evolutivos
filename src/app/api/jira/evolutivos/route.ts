@@ -106,6 +106,7 @@ export async function GET(request: NextRequest) {
             }
 
             return {
+                id: parent.id,
                 key: parent.key,
                 summary: parent.fields.summary,
                 status: parent.fields.status.name,
