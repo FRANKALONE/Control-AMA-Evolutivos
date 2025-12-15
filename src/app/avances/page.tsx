@@ -142,9 +142,9 @@ export default function AvancesPage() {
             if (selectedAssignees.length > 0 && (!issue.assignee?.displayName || !selectedAssignees.includes(issue.assignee.displayName))) return false;
             if (selectedGestors.length > 0 && !selectedGestors.includes(issue.gestor?.name || 'Sin Gestor')) return false;
 
-            // EXCLUDE Specific Billing Modes
+            // EXCLUDE Specific Billing Modes OR No Billing Mode
             const EXCLUDED_BILLING_MODES = ['T&M contra bolsa', 'T&M Facturable'];
-            if (issue.billingMode && EXCLUDED_BILLING_MODES.includes(issue.billingMode)) return false;
+            if (!issue.billingMode || EXCLUDED_BILLING_MODES.includes(issue.billingMode)) return false;
 
             // New Boolean Filters logic
             // If toggle is ON, we ONLY show items matching that criteria
@@ -277,10 +277,8 @@ export default function AvancesPage() {
                         const barWidth = Math.min(100, percentage);
 
                         // Color Logic
-                        let progressColor = 'bg-indigo-500';
+                        let progressColor = 'bg-green-500';
                         if (percentage > 100) progressColor = 'bg-red-500';
-                        else if (percentage > 85) progressColor = 'bg-orange-500';
-                        else if (percentage < 50) progressColor = 'bg-green-500';
 
                         return (
                             <div key={issue.key} className="bg-white rounded-2xl p-6 shadow-sm border border-slate-100 hover:shadow-md transition-shadow relative overflow-hidden">
@@ -296,7 +294,7 @@ export default function AvancesPage() {
                                             {issue.status}
                                         </span>
                                         <a
-                                            href={`${process.env.NEXT_PUBLIC_JIRA_DOMAIN}/browse/${issue.key}`}
+                                            href={issue.url || '#'}
                                             target="_blank"
                                             rel="noopener noreferrer"
                                             className="font-mono text-xs text-slate-400 hover:text-indigo-500 hover:underline transition-colors"

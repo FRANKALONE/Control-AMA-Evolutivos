@@ -108,6 +108,7 @@ export async function GET(request: NextRequest) {
             return {
                 id: parent.id,
                 key: parent.key,
+                url: `${process.env.NEXT_PUBLIC_JIRA_DOMAIN || process.env.JIRA_DOMAIN || ''}/browse/${parent.key}`,
                 summary: parent.fields.summary,
                 status: parent.fields.status.name,
                 assignee: parent.fields.assignee,

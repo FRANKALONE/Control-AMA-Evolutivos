@@ -7,6 +7,7 @@ export interface JiraUser {
 
 export interface JiraIssue {
     key: string;
+    url?: string;
     summary: string;
     status: string;
     project: string;
