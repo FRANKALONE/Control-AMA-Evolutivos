@@ -164,56 +164,50 @@ export default function Home() {
     <div className="min-h-screen bg-sea-salt text-prussian-blue font-sans p-6 md:p-8">
       <div className="max-w-7xl mx-auto space-y-10">
 
-        {/* Header & Filter */}
-        <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
+        {/* Top Header: Logo + Date/User */}
+        <div className="flex flex-col md:flex-row md:items-center md:justify-between gap-4">
+          {/* Logo Section */}
           <div>
-            <div className="mb-2">
-              <Image
-                src="/logo-new.jpg"
-                alt="Logo App"
-                width={220}
-                height={80}
-                className="object-contain mix-blend-multiply contrast-125 brightness-110"
-                priority
-              />
-            </div>
-            <p className="text-teal font-secondary text-xl">
-              Gestión operativa de evolutivos y hitos.
-            </p>
-            <div className="flex items-center gap-2 mt-4">
-              {/* Removed Link */}
-            </div>
+            <Image
+              src="/logo-new.jpg"
+              alt="Logo App"
+              width={220}
+              height={80}
+              className="object-contain mix-blend-multiply contrast-125 brightness-110"
+              priority
+            />
           </div>
 
+          {/* Right Actions: Date & User */}
           <div className="flex items-center gap-4">
-            {/* Manager Filter */}
-            <div className="relative group z-20">
-              <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full border border-antiflash shadow-sm hover:border-malaquita/50 transition-all cursor-pointer">
-                <User className="w-5 h-5 text-jade" />
-                <select
-                  className="bg-transparent font-medium text-prussian-blue outline-none cursor-pointer appearance-none pr-8"
-                  value={selectedManager}
-                  onChange={(e) => setSelectedManager(e.target.value)}
-                >
-                  <option value="">Todos los Gestores</option>
-                  <option value="unassigned" className="text-teal font-bold bg-antiflash">⚠️ Sin asignar</option>
-                  {managers.map((m: any) => (
-                    <option key={m.id} value={m.id}>{m.name}</option>
-                  ))}
-                </select>
-                <ArrowUpRight className="w-4 h-4 text-teal/50 absolute right-4 pointer-events-none rotate-90" />
-              </div>
-            </div>
-
             <div className="flex items-center gap-2 px-5 py-2.5 bg-white rounded-full shadow-sm border border-antiflash transition-transform hover:scale-105">
               <Calendar className="w-5 h-5 text-jade" />
               <span className="text-base font-medium text-prussian-blue capitalize">
                 {format(new Date(), "d 'de' MMMM, yyyy", { locale: es })}
               </span>
             </div>
-
-            {/* User Menu */}
             <UserMenu />
+          </div>
+        </div>
+
+        {/* Action Bar: Manager Filter (Above Cards) */}
+        <div className="flex justify-end">
+          <div className="relative group z-20">
+            <div className="flex items-center gap-2 bg-white px-4 py-2.5 rounded-full border border-antiflash shadow-sm hover:border-malaquita/50 transition-all cursor-pointer">
+              <User className="w-5 h-5 text-jade" />
+              <select
+                className="bg-transparent font-medium text-prussian-blue outline-none cursor-pointer appearance-none pr-8"
+                value={selectedManager}
+                onChange={(e) => setSelectedManager(e.target.value)}
+              >
+                <option value="">Todos los Gestores</option>
+                <option value="unassigned" className="text-teal font-bold bg-antiflash">⚠️ Sin asignar</option>
+                {managers.map((m: any) => (
+                  <option key={m.id} value={m.id}>{m.name}</option>
+                ))}
+              </select>
+              <ArrowUpRight className="w-4 h-4 text-teal/50 absolute right-4 pointer-events-none rotate-90" />
+            </div>
           </div>
         </div>
 
