@@ -142,6 +142,10 @@ export default function AvancesPage() {
             if (selectedAssignees.length > 0 && (!issue.assignee?.displayName || !selectedAssignees.includes(issue.assignee.displayName))) return false;
             if (selectedGestors.length > 0 && !selectedGestors.includes(issue.gestor?.name || 'Sin Gestor')) return false;
 
+            // EXCLUDE Specific Billing Modes
+            const EXCLUDED_BILLING_MODES = ['T&M contra bolsa', 'T&M Facturable'];
+            if (issue.billingMode && EXCLUDED_BILLING_MODES.includes(issue.billingMode)) return false;
+
             // New Boolean Filters logic
             // If toggle is ON, we ONLY show items matching that criteria
             // OR checks? User said "sacar de la lista... todos aquellos que..." - usually implies filtering TO see them.
