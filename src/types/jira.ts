@@ -49,6 +49,7 @@ export interface DashboardStats {
     today: number;
     upcoming: number;
     others: number;
+    unplanned: number;
     total?: number;
     activeEvolutivos?: number;
 }

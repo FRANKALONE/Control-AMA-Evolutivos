@@ -6,7 +6,7 @@ import prisma from '@/lib/db';
 export async function GET(request: Request) {
     try {
         // 1. Fetch specifically "Hitos Evolutivos" that are not closed.
-        const jql = `projectType = "service_desk" AND issuetype = "Hitos Evolutivos" AND status != "Cerrado" AND duedate is not EMPTY ORDER BY duedate ASC`;
+        const jql = `projectType = "service_desk" AND issuetype = "Hitos Evolutivos" AND status != "Cerrado" ORDER BY duedate ASC`;
 
         // 1b. Fetch metric: Total Active Evolutivos (Parent tickets)
         // Criteria: Type=Evolutivo, Status != Closed AND != Entregado en PRD
@@ -14,7 +14,7 @@ export async function GET(request: Request) {
 
         // Run both initial fetches in parallel for speed
         const [hitosData, activeEvolutivosCount] = await Promise.all([
-            getJiraIssues(jql),
+            getJiraIssues(jql, [], 100, true),
             getJiraIssueCount(evolutivosJql)
         ]);
 
@@ -82,6 +82,7 @@ export async function GET(request: Request) {
         const today: any[] = [];
         const upcoming: any[] = [];
         const others: any[] = [];
+        const unplanned: any[] = [];
 
         // We map to a new array to avoid mutating read-only refs if any, and inject manager
         const enrichedIssues = issues.map((issue: any) => {
@@ -96,7 +97,10 @@ export async function GET(request: Request) {
 
         enrichedIssues.forEach((issue: any) => {
             const dueDateStr = issue.fields.duedate;
-            if (!dueDateStr) return;
+            if (!dueDateStr) {
+                unplanned.push(issue);
+                return;
+            }
 
             const dueDate = parseISO(dueDateStr);
 
@@ -116,6 +120,8 @@ export async function GET(request: Request) {
                 expired: expired.length,
                 today: today.length,
                 upcoming: upcoming.length,
+                others: others.length,
+                unplanned: unplanned.length,
                 total: issues.length,
                 activeEvolutivos: activeEvolutivosCount
             },
@@ -123,7 +129,8 @@ export async function GET(request: Request) {
                 expired,
                 today,
                 upcoming,
-                others
+                others,
+                unplanned
             },
             // Return all managers found for the frontend filter
             managers: Array.from(managerMap.values()).reduce((acc: any[], curr) => {

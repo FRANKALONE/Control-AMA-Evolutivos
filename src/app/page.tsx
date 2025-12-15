@@ -20,6 +20,7 @@ interface DashboardData {
     today: JiraIssue[];
     upcoming: JiraIssue[];
     others: JiraIssue[];
+    unplanned: JiraIssue[];
   };
   managers: JiraUser[];
 }
@@ -47,8 +48,8 @@ export default function Home() {
         setError(err.message);
         console.warn("Using mock data due to error");
         setData({
-          summary: { expired: 0, today: 0, upcoming: 0, others: 0 },
-          issues: { expired: [], today: [], upcoming: [], others: [] },
+          summary: { expired: 0, today: 0, upcoming: 0, others: 0, unplanned: 0 },
+          issues: { expired: [], today: [], upcoming: [], others: [], unplanned: [] },
           managers: []
         });
       } finally {
@@ -101,7 +102,7 @@ export default function Home() {
 
   // Compute filtered data
   const getFilteredSummary = () => {
-    if (!data) return { expired: 0, today: 0, upcoming: 0, others: 0 };
+    if (!data) return { expired: 0, today: 0, upcoming: 0, others: 0, unplanned: 0 };
     if (!selectedManager) return data.summary;
 
     const filterFn = (i: JiraIssue) => {
@@ -114,6 +115,7 @@ export default function Home() {
       today: data.issues.today.filter(filterFn).length,
       upcoming: data.issues.upcoming.filter(filterFn).length,
       others: data.issues.others.filter(filterFn).length,
+      unplanned: data.issues.unplanned.filter(filterFn).length,
       activeEvolutivos: data.summary.activeEvolutivos
     };
   };
@@ -219,7 +221,7 @@ export default function Home() {
         )}
 
         {/* 1. Stats Grid (Fichas de Hitos) */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-4 gap-6">
           {/* Card: Vencidas (Critical = Red) */}
           <StatCard
             title="Vencidas"
@@ -241,6 +243,13 @@ export default function Home() {
             icon={<Clock className="w-8 h-8" />}
             color="blue"
             href={`/list/upcoming?manager=${selectedManager}`}
+          />
+          <StatCard
+            title="No Planificados"
+            count={stats.unplanned}
+            icon={<ListTodo className="w-8 h-8" />}
+            color="purple"
+            href={`/list/unplanned?manager=${selectedManager}`}
           />
         </div>
 

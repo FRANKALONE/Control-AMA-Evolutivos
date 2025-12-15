@@ -1,11 +1,11 @@
 'use client';
 
 import { useEffect, useState, useMemo, useCallback, useRef } from 'react';
-import { ArrowLeft, Calendar, Filter, ChevronDown, RefreshCw, X, ArrowRight, User, AlertCircle, Clock } from 'lucide-react';
+import { ArrowLeft, Calendar, Filter, ChevronDown, RefreshCw, X, ArrowRight, User, AlertCircle, Clock, Settings, CalendarDays, CalendarRange } from 'lucide-react';
 import Link from 'next/link';
 import { DropdownFilter } from '@/components/ui/DropdownFilter';
 import { JiraIssue } from '@/types/jira';
-import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, isBefore, differenceInDays, isValid, isAfter } from 'date-fns';
+import { format, parseISO, startOfMonth, endOfMonth, eachDayOfInterval, isSameDay, addMonths, subMonths, isToday, isBefore, differenceInDays, isValid, isAfter, eachWeekOfInterval, differenceInWeeks, endOfWeek, startOfWeek, isSameWeek } from 'date-fns';
 import { es } from 'date-fns/locale';
 
 export default function TimelinePage() {
@@ -30,6 +30,8 @@ export default function TimelinePage() {
 
     // View State
     const [currentMonth, setCurrentMonth] = useState(new Date());
+    const [viewMode, setViewMode] = useState<'day' | 'week'>('day');
+    const [monthsToShow, setMonthsToShow] = useState<1 | 3 | 6>(1);
     const [activeDropdown, setActiveDropdown] = useState<string | null>(null);
 
     // Sync Scroll Refs
@@ -65,12 +67,21 @@ export default function TimelinePage() {
     }, [fetchList]);
 
 
-    // Grid Generation (Month View)
-    const daysInMonth = useMemo(() => {
+    // Grid Generation (Dynamic)
+    const { startDate, endDate, timeSlots } = useMemo(() => {
         const start = startOfMonth(currentMonth);
-        const end = endOfMonth(currentMonth);
-        return eachDayOfInterval({ start, end });
-    }, [currentMonth]);
+        const end = endOfMonth(addMonths(currentMonth, monthsToShow - 1));
+
+        let slots;
+        if (viewMode === 'day') {
+            slots = eachDayOfInterval({ start, end });
+        } else {
+            slots = eachWeekOfInterval({ start, end }, { weekStartsOn: 1 });
+        }
+        return { startDate: start, endDate: end, timeSlots: slots };
+    }, [currentMonth, monthsToShow, viewMode]);
+
+    const COL_WIDTH = viewMode === 'day' ? 40 : 100;
 
     // Extract Options
     const options = useMemo(() => {
@@ -259,12 +270,43 @@ export default function TimelinePage() {
                     <div className="p-4 border-b border-antiflash flex items-center justify-between bg-sea-salt/30">
                         <div className="flex items-center gap-4">
                             <button onClick={() => setCurrentMonth(subMonths(currentMonth, 1))} className="p-2 hover:bg-white rounded-full transition-colors"><ArrowLeft className="w-4 h-4" /></button>
-                            <h2 className="text-lg font-bold text-blue-grey capitalize w-48 text-center">{format(currentMonth, 'MMMM yyyy', { locale: es })}</h2>
+                            <h2 className="text-lg font-bold text-blue-grey capitalize w-48 text-center">
+                                {monthsToShow === 1
+                                    ? format(currentMonth, 'MMMM yyyy', { locale: es })
+                                    : `${format(startDate, 'MMM', { locale: es })} - ${format(endDate, 'MMM yyyy', { locale: es })}`
+                                }
+                            </h2>
                             <button onClick={() => setCurrentMonth(addMonths(currentMonth, 1))} className="p-2 hover:bg-white rounded-full transition-colors"><ArrowRight className="w-4 h-4" /></button>
                         </div>
-                        <button onClick={() => setCurrentMonth(new Date())} className="text-xs font-bold text-teal hover:text-jade transition-colors">
-                            Hoy
-                        </button>
+
+                        <div className="flex items-center gap-2">
+                            {/* View Mode Toggles */}
+                            <div className="flex bg-sea-salt p-1 rounded-lg border border-antiflash mr-4">
+                                <button
+                                    onClick={() => setViewMode('day')}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${viewMode === 'day' ? 'bg-white shadow-sm text-jade' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    Día
+                                </button>
+                                <button
+                                    onClick={() => setViewMode('week')}
+                                    className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${viewMode === 'week' ? 'bg-white shadow-sm text-jade' : 'text-slate-400 hover:text-slate-600'}`}
+                                >
+                                    Semana
+                                </button>
+                            </div>
+
+                            {/* Months Toggles */}
+                            <div className="flex bg-sea-salt p-1 rounded-lg border border-antiflash mr-4">
+                                <button onClick={() => setMonthsToShow(1)} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${monthsToShow === 1 ? 'bg-white shadow-sm text-teal' : 'text-slate-400'}`}>1M</button>
+                                <button onClick={() => setMonthsToShow(3)} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${monthsToShow === 3 ? 'bg-white shadow-sm text-teal' : 'text-slate-400'}`}>3M</button>
+                                <button onClick={() => setMonthsToShow(6)} className={`px-3 py-1 text-xs font-bold rounded-md transition-all ${monthsToShow === 6 ? 'bg-white shadow-sm text-teal' : 'text-slate-400'}`}>6M</button>
+                            </div>
+
+                            <button onClick={() => setCurrentMonth(new Date())} className="text-xs font-bold text-teal hover:text-jade transition-colors">
+                                Hoy
+                            </button>
+                        </div>
                     </div>
 
                     {/* Unified Scroll Container */}
@@ -278,13 +320,28 @@ export default function TimelinePage() {
                                 <div className="w-80 flex-shrink-0 p-4 font-bold text-xs text-blue-grey uppercase tracking-wider border-r border-antiflash bg-white z-40 sticky left-0 shadow-[4px_0_24px_-4px_rgba(0,0,0,0.05)]">
                                     Evolutivo
                                 </div>
-                                {/* Days Header */}
+                                {/* Days/Weeks Header */}
                                 <div className="flex">
-                                    {daysInMonth.map(day => (
-                                        <div key={day.toISOString()} className={`flex-shrink-0 w-10 text-center text-[10px] py-3 border-r border-antiflash/50 bg-sea-salt/50 ${isToday(day) ? 'bg-jade/10 font-bold text-jade' : 'text-slate-400'}`}>
-                                            {format(day, 'd')}
-                                            <br />
-                                            {format(day, 'EEEEE', { locale: es })}
+                                    {timeSlots.map(slot => (
+                                        <div
+                                            key={slot.toISOString()}
+                                            className={`flex-shrink-0 text-center text-[10px] py-3 border-r border-antiflash/50 bg-sea-salt/50 
+                                                ${(viewMode === 'day' && isToday(slot)) || (viewMode === 'week' && isSameWeek(slot, new Date(), { weekStartsOn: 1 })) ? 'bg-jade/10 font-bold text-jade' : 'text-slate-400'}`}
+                                            style={{ width: `${COL_WIDTH}px` }}
+                                        >
+                                            {viewMode === 'day' ? (
+                                                <>
+                                                    {format(slot, 'd')}
+                                                    <br />
+                                                    {format(slot, 'EEEEE', { locale: es })}
+                                                </>
+                                            ) : (
+                                                <>
+                                                    Sem {format(slot, 'w')}
+                                                    <br />
+                                                    {format(slot, 'MMM', { locale: es })}
+                                                </>
+                                            )}
                                         </div>
                                     ))}
                                 </div>
@@ -306,51 +363,100 @@ export default function TimelinePage() {
                                                 {/* Sticky Row Header */}
                                                 <div className="w-80 flex-shrink-0 p-4 border-r border-antiflash bg-white z-30 sticky left-0 group-hover:bg-sea-salt/20 transition-colors shadow-[4px_0_12px_-4px_rgba(0,0,0,0.02)]">
                                                     <p className="font-bold text-sm text-blue-grey truncate" title={issue.summary}>{issue.summary}</p>
-                                                    <a href={getJiraUrl(issue.key)} target="_blank" className="text-xs text-teal font-mono hover:underline">{issue.key}</a>
+                                                    <a href={getJiraUrl(issue.key)} target="_blank" className="text-xs text-teal font-mono hover:underline block mb-1">{issue.key}</a>
+
+                                                    {(() => {
+                                                        const unplannedCount = (issue.children || []).filter((child: any) =>
+                                                            !child.fields.duedate && child.fields.status?.name !== 'Cerrado'
+                                                        ).length;
+
+                                                        if (unplannedCount > 0) {
+                                                            return (
+                                                                <p className="text-[10px] text-red-500 font-bold mt-1 flex items-center gap-1 animate-pulse">
+                                                                    <AlertCircle className="w-3 h-3" />
+                                                                    Tiene {unplannedCount} hitos por planificar
+                                                                </p>
+                                                            );
+                                                        }
+                                                        return null;
+                                                    })()}
                                                 </div>
 
                                                 {/* Row Timeline Content */}
                                                 <div className="flex relative">
                                                     {/* Background Grid Lines */}
-                                                    {daysInMonth.map(day => (
-                                                        <div key={day.toISOString()} className={`flex-shrink-0 w-10 border-r border-antiflash/30 min-h-[60px] ${isToday(day) ? 'bg-jade/5' : ''}`} />
+                                                    {timeSlots.map(slot => (
+                                                        <div
+                                                            key={slot.toISOString()}
+                                                            className={`flex-shrink-0 border-r border-antiflash/30 min-h-[60px] ${(viewMode === 'day' && isToday(slot)) || (viewMode === 'week' && isSameWeek(slot, new Date(), { weekStartsOn: 1 })) ? 'bg-jade/5' : ''}`}
+                                                            style={{ width: `${COL_WIDTH}px` }}
+                                                        />
                                                     ))}
 
                                                     {/* Hitos Placing */}
                                                     {(() => {
-                                                        const startM = startOfMonth(currentMonth);
-                                                        const endM = endOfMonth(currentMonth);
-
                                                         const items = visibleHitos.map((hito: any) => {
                                                             const endDate = hito.fields.duedate ? parseISO(hito.fields.duedate) : null;
                                                             const rawStart = hito.fields.customfield_10124;
-                                                            const startDate = rawStart ? parseISO(rawStart) : null;
+                                                            const startDateObj = rawStart ? parseISO(rawStart) : null; // Rename to avoid confusion with startDate of grid
 
                                                             if (!endDate) return null;
 
-                                                            const isBar = startDate && isValid(startDate) && (isBefore(startDate, endDate) || isSameDay(startDate, endDate));
+                                                            // Determine Check logic based on viewMode
+                                                            const isBar = startDateObj && isValid(startDateObj) && (isBefore(startDateObj, endDate) || isSameDay(startDateObj, endDate));
 
+                                                            // Range Check
                                                             if (isBar) {
-                                                                // Overlap Logic: (StartA <= EndB) and (EndA >= StartB)
-                                                                if (!(startDate <= endM && endDate >= startM)) return null;
+                                                                if (!(startDateObj <= endDate && endDate >= startDate)) return null;
                                                             } else {
-                                                                // Point Logic: Must be strictly within the month
-                                                                if (endDate < startM || endDate > endM) return null;
+                                                                if (endDate < startDate || endDate > endDate) return null;
                                                             }
 
-                                                            let startIdx, durationDays;
+                                                            let startIdx, durationUnits;
 
-                                                            if (isBar) {
-                                                                const s = startDate < startM ? startM : startDate;
-                                                                const e = endDate > endM ? endM : endDate;
-                                                                startIdx = differenceInDays(s, startM);
-                                                                durationDays = differenceInDays(e, s) + 1;
+                                                            if (viewMode === 'day') {
+                                                                if (isBar) {
+                                                                    const s = startDateObj < startDate ? startDate : startDateObj;
+                                                                    const e = endDate > endDate ? endDate : endDate;
+                                                                    startIdx = differenceInDays(s, startDate);
+                                                                    durationUnits = differenceInDays(e, s) + 1;
+                                                                    // Fix negative start
+                                                                    if (startIdx < 0) {
+                                                                        durationUnits += startIdx;
+                                                                        startIdx = 0;
+                                                                    }
+                                                                } else {
+                                                                    startIdx = differenceInDays(endDate, startDate);
+                                                                    durationUnits = 1;
+                                                                }
                                                             } else {
-                                                                startIdx = endDate.getDate() - 1;
-                                                                durationDays = 1;
+                                                                // WEEK MODE
+                                                                if (isBar) {
+                                                                    const s = startDateObj < startDate ? startDate : startDateObj;
+                                                                    const e = endDate > endDate ? endDate : endDate;
+
+                                                                    // Normalize to week start
+                                                                    const sWeek = startOfWeek(s, { weekStartsOn: 1 });
+                                                                    const startGridDate = startOfWeek(startDate, { weekStartsOn: 1 });
+                                                                    const eWeek = startOfWeek(e, { weekStartsOn: 1 });
+
+                                                                    startIdx = differenceInWeeks(sWeek, startGridDate);
+                                                                    durationUnits = differenceInWeeks(eWeek, sWeek) + 1;
+
+                                                                    if (startIdx < 0) {
+                                                                        durationUnits += startIdx;
+                                                                        startIdx = 0;
+                                                                    }
+                                                                } else {
+                                                                    const endWeek = startOfWeek(endDate, { weekStartsOn: 1 });
+                                                                    const startGridDate = startOfWeek(startDate, { weekStartsOn: 1 });
+
+                                                                    startIdx = differenceInWeeks(endWeek, startGridDate);
+                                                                    durationUnits = 1;
+                                                                }
                                                             }
 
-                                                            return { hito, startIdx, durationDays, isBar, endDate, startDate };
+                                                            return { hito, startIdx, durationUnits, isBar, endDate, startDate: startDateObj };
                                                         }).filter(Boolean);
 
                                                         items.sort((a: any, b: any) => a.startIdx - b.startIdx);
@@ -369,15 +475,15 @@ export default function TimelinePage() {
                                                                 trackIdx = tracks.length;
                                                                 tracks.push(-1);
                                                             }
-                                                            tracks[trackIdx] = item.startIdx + item.durationDays;
+                                                            tracks[trackIdx] = item.startIdx + item.durationUnits;
                                                             return { ...item, trackIdx };
                                                         });
 
                                                         return positionedItems.map((m: any) => {
-                                                            const { hito, startIdx, durationDays, isBar, endDate, startDate, trackIdx } = m;
+                                                            const { hito, startIdx, durationUnits, isBar, endDate, startDate, trackIdx } = m;
 
-                                                            const leftPos = startIdx * 40;
-                                                            const width = durationDays * 40;
+                                                            const leftPos = startIdx * COL_WIDTH;
+                                                            const width = durationUnits * COL_WIDTH;
                                                             const topOffset = 10 + (trackIdx * 24);
 
                                                             const isClosed = hito.fields.status?.name === 'Cerrado';
