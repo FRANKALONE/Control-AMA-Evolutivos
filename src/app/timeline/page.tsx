@@ -328,11 +328,13 @@ export default function TimelinePage() {
 
                                                             if (!endDate) return null;
 
-                                                            const isBar = startDate && isValid(startDate) && isBefore(startDate, endDate);
+                                                            const isBar = startDate && isValid(startDate) && (isBefore(startDate, endDate) || isSameDay(startDate, endDate));
 
                                                             if (isBar) {
-                                                                if (!(endDate >= startM && startDate <= endM)) return null;
+                                                                // Overlap Logic: (StartA <= EndB) and (EndA >= StartB)
+                                                                if (!(startDate <= endM && endDate >= startM)) return null;
                                                             } else {
+                                                                // Point Logic: Must be strictly within the month
                                                                 if (endDate < startM || endDate > endM) return null;
                                                             }
 

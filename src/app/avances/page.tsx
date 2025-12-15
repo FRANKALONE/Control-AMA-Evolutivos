@@ -10,12 +10,17 @@ import { JiraIssue } from '@/types/jira';
 function WorklogModal({ issue, onClose }: { issue: any, onClose: () => void }) {
     if (!issue) return null;
 
-    const worklogs = issue.fields.worklog?.worklogs || [];
+    const worklogs = issue.worklog?.worklogs || [];
     // Aggregate by author
     const byAuthor: Record<string, number> = {};
     worklogs.forEach((w: any) => {
-        const author = w.author?.displayName || 'Desconocido';
-        byAuthor[author] = (byAuthor[author] || 0) + w.timeSpentSeconds;
+        // Robust Author Check
+        const authorObj = w.author || w.updateAuthor;
+        const authorName = authorObj?.displayName || authorObj?.name || authorObj?.emailAddress || 'Desconocido';
+
+        console.log('Worklog Entry Debug:', w); // For debugging
+
+        byAuthor[authorName] = (byAuthor[authorName] || 0) + w.timeSpentSeconds;
     });
 
     return (
@@ -50,7 +55,7 @@ function WorklogModal({ issue, onClose }: { issue: any, onClose: () => void }) {
                 <div className="p-4 bg-gray-50 border-t border-gray-100 text-right">
                     <span className="text-xs text-gray-500 mr-2">Total Imputado:</span>
                     <span className="font-bold text-indigo-600 text-lg">
-                        {((issue.fields.timespent || 0) / 3600).toFixed(2)} h
+                        {((issue.timespent || 0) / 3600).toFixed(2)} h
                     </span>
                 </div>
             </div>
@@ -243,10 +248,12 @@ export default function AvancesPage() {
                         // Calculate percentage
                         let percentage = 0;
                         if (estimatedHours > 0) {
-                            percentage = Math.min(100, (loggedHours / estimatedHours) * 100);
+                            percentage = (loggedHours / estimatedHours) * 100;
                         } else if (loggedHours > 0) {
                             percentage = 100; // Over budget effectively if 0 estimate
                         }
+
+                        const barWidth = Math.min(100, percentage);
 
                         // Color Logic
                         let progressColor = 'bg-indigo-500';
@@ -280,7 +287,7 @@ export default function AvancesPage() {
                                             <span>{percentage.toFixed(0)}%</span>
                                         </div>
                                         <div className="h-2 w-full bg-slate-100 rounded-full overflow-hidden">
-                                            <div className={`h-full rounded-full transition-all duration-500 ${progressColor}`} style={{ width: `${percentage}%` }}></div>
+                                            <div className={`h-full rounded-full transition-all duration-500 ${progressColor}`} style={{ width: `${barWidth}%` }}></div>
                                         </div>
                                     </div>
 
