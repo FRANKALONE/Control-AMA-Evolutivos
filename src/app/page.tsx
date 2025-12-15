@@ -173,7 +173,7 @@ export default function Home() {
                 alt="Logo App"
                 width={220}
                 height={80}
-                className="object-contain mix-blend-multiply"
+                className="object-contain mix-blend-multiply contrast-125 brightness-110"
                 priority
               />
             </div>
