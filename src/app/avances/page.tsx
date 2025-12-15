@@ -295,7 +295,15 @@ export default function AvancesPage() {
                                         <span className={`text-[10px] font-bold uppercase tracking-wider px-2 py-1 rounded-md ${issue.status === 'Cerrado' ? 'bg-green-50 text-green-600' : 'bg-blue-50 text-blue-600'}`}>
                                             {issue.status}
                                         </span>
-                                        <span className="font-mono text-xs text-slate-400">{issue.key}</span>
+                                        <a
+                                            href={`${process.env.NEXT_PUBLIC_JIRA_DOMAIN}/browse/${issue.key}`}
+                                            target="_blank"
+                                            rel="noopener noreferrer"
+                                            className="font-mono text-xs text-slate-400 hover:text-indigo-500 hover:underline transition-colors"
+                                            onClick={(e) => e.stopPropagation()}
+                                        >
+                                            {issue.key}
+                                        </a>
                                     </div>
                                     <h3 className="font-bold text-slate-700 line-clamp-2 h-12" title={issue.summary}>{issue.summary}</h3>
                                 </div>
