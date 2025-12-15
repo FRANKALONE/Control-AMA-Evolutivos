@@ -167,19 +167,16 @@ export default function Home() {
         {/* Header & Filter */}
         <div className="flex flex-col md:flex-row md:items-end md:justify-between gap-4">
           <div>
-            <div className="mb-4">
+            <div className="mb-2">
               <Image
                 src="/logo-new.jpg"
                 alt="Logo App"
-                width={150}
-                height={50}
-                className="object-contain"
+                width={220}
+                height={80}
+                className="object-contain mix-blend-multiply"
                 priority
               />
             </div>
-            <h1 className="text-5xl font-bold tracking-tight text-blue-grey mb-2 font-sans">
-              Hola, Equipo <span className="text-malaquita">Altim</span>
-            </h1>
             <p className="text-teal font-secondary text-xl">
               Gestión operativa de evolutivos y hitos.
             </p>
